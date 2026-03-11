@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,12 +12,14 @@ interface ProblemPageProps {
 export default function ProblemPage({ params }: ProblemPageProps) {
     const { id } = use(params);
     const router = useRouter();
-    const [content, setContent] = useState<string>("");
     const [title, setTitle] = useState<string>("");
     const [summary, setSummary] = useState<string>("");
     const [markdown, setMarkdown] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [showSolution, setShowSolution] = useState(false);
+    const [solution, setSolution] = useState<string>("");
+    const [isFetchingSolution, setIsFetchingSolution] = useState(false);
 
     useEffect(() => {
         async function loadProblem() {
@@ -33,8 +35,6 @@ export default function ProblemPage({ params }: ProblemPageProps) {
                 }
 
                 const text = await response.text();
-                setContent(text);
-
                 // Parse custom markup
                 const lines = text.split("\n");
                 let parsedTitle = "";
@@ -69,7 +69,38 @@ export default function ProblemPage({ params }: ProblemPageProps) {
         }
 
         loadProblem();
-    }, [id]);
+        // Reset solution state when ID changes
+        setShowSolution(false);
+        setSolution("");
+    }, [id, router]);
+
+    const handleViewSolution = async () => {
+        if (showSolution) {
+            setShowSolution(false);
+            return;
+        }
+
+        if (solution) {
+            setShowSolution(true);
+            return;
+        }
+
+        setIsFetchingSolution(true);
+        try {
+            const response = await fetch(`/solutions/${id}.txt`);
+            if (response.ok) {
+                const text = await response.text();
+                setSolution(text);
+                setShowSolution(true);
+            } else {
+                console.error("Solution not found");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsFetchingSolution(false);
+        }
+    };
 
     if (error) {
         return (
@@ -105,28 +136,157 @@ export default function ProblemPage({ params }: ProblemPageProps) {
                 <div className="relative">
                     <ReactMarkdown
                         components={{
-                            h1: ({ node, ...props }) => <h1 className="text-2xl lg:text-3xl font-black mb-8 text-navy-950 uppercase border-b-2 border-navy-100 pb-2" {...props} />,
-                            h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-12 mb-6 text-navy-950 uppercase" {...props} />,
-                            h3: ({ node, ...props }) => <h3 className="text-lg font-bold mt-8 mb-4 text-navy-900 uppercase" {...props} />,
-                            p: ({ node, ...props }) => <p className="leading-relaxed text-navy-800 mb-8 text-base lg:text-lg" {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-none space-y-4 mb-8 text-navy-800" {...props} />,
-                            li: ({ node, ...props }) => (
+                            h1: ({ ...props }) => <h1 className="text-2xl lg:text-3xl font-black mb-8 text-navy-950 uppercase border-b-2 border-navy-100 pb-2" {...props} />,
+                            h2: ({ ...props }) => <h2 className="text-xl font-bold mt-12 mb-6 text-navy-950 uppercase" {...props} />,
+                            h3: ({ ...props }) => <h3 className="text-lg font-bold mt-8 mb-4 text-navy-900 uppercase" {...props} />,
+                            p: ({ ...props }) => <p className="leading-relaxed text-navy-800 mb-8 text-base lg:text-lg" {...props} />,
+                            ul: ({ ...props }) => <ul className="list-none space-y-4 mb-8 text-navy-800" {...props} />,
+                            li: ({ ...props }) => (
                                 <li className="relative pl-8 mb-4 text-navy-800 before:content-['■'] before:text-navy-950 before:text-[10px] before:absolute before:left-0 before:top-2" {...props} />
                             ),
-                            ol: ({ node, ...props }) => <ol className="list-decimal list-inside space-y-4 mb-8 text-navy-800 font-bold" {...props} />,
-                            code: ({ node, ...props }) => (
+                            ol: ({ ...props }) => <ol className="list-decimal list-inside space-y-4 mb-8 text-navy-800 font-bold" {...props} />,
+                            code: ({ ...props }) => (
                                 <code className="bg-navy-50 text-navy-950 px-1.5 py-0.5 border border-navy-100 font-mono text-sm whitespace-nowrap" {...props} />
                             ),
-                            pre: ({ node, ...props }) => (
+                            pre: ({ ...props }) => (
                                 <pre className="bg-navy-950 text-navy-50 border-0 p-6 lg:p-8 overflow-x-auto my-10 font-mono text-xs lg:text-sm leading-relaxed" {...props} />
                             ),
-                            blockquote: ({ node, ...props }) => (
-                                <blockquote className="border-l-[8px] lg:border-l-[12px] border-navy-950 bg-navy-50 p-6 lg:p-8 my-10 italic text-navy-900 font-medium" {...props} />
-                            ),
+                            blockquote: ({ children }) => {
+                                const childrenArray = React.Children.toArray(children);
+
+                                // Enhanced detection: Recursive helper to find and strip tag
+                                let alertType: "TIP" | "IMPORTANT" | "NOTE" | null = null;
+                                let matchStr = "";
+
+                                const findAndStrip = (nodes: React.ReactNode[]): React.ReactNode[] => {
+                                    return nodes.map((n, i) => {
+                                        if (alertType || i > 1) return n; // Only check the very beginning
+
+                                        if (typeof n === 'string') {
+                                            const trimmed = n.trim();
+                                            const tip = trimmed.match(/^\[!TIP\]/i);
+                                            const imp = trimmed.match(/^\[!IMPORTANT\]/i);
+                                            const note = trimmed.match(/^\[!NOTE\]/i);
+
+                                            if (tip || imp || note) {
+                                                alertType = tip ? "TIP" : imp ? "IMPORTANT" : "NOTE";
+                                                matchStr = tip ? "[!TIP]" : imp ? "[!IMPORTANT]" : "[!NOTE]";
+
+                                                // Strip the tag and any following whitespace or leading newlines
+                                                const tagIdx = n.toUpperCase().indexOf(matchStr);
+                                                const segment1 = n.slice(0, tagIdx);
+                                                const segment2 = n.slice(tagIdx + matchStr.length);
+                                                return (segment1 + segment2).replace(/^[\s\n\r]+/, '');
+                                            }
+                                        }
+
+                                        if (React.isValidElement(n)) {
+                                            const element = n as React.ReactElement<{ children?: React.ReactNode }>;
+                                            if (element.type === 'p' || element.props.children) {
+                                                const childNodes = React.Children.toArray(element.props.children);
+                                                const strippedChildren = findAndStrip(childNodes);
+                                                if (alertType) {
+                                                    return React.cloneElement(element, {
+                                                        ...element.props,
+                                                        children: strippedChildren
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        return n;
+                                    });
+                                };
+
+                                const stripped = findAndStrip(childrenArray);
+
+                                if (alertType) {
+                                    const themes: Record<string, { bg: string; border: string; text: string; accent: string; label: string }> = {
+                                        TIP: {
+                                            bg: "bg-emerald-50/50",
+                                            border: "border-emerald-500",
+                                            text: "text-emerald-950",
+                                            accent: "bg-emerald-500",
+                                            label: "PRACTICE TIP",
+                                        },
+                                        IMPORTANT: {
+                                            bg: "bg-rose-50/50",
+                                            border: "border-rose-500",
+                                            text: "text-rose-950",
+                                            accent: "bg-rose-500",
+                                            label: "CRITICAL REQUIREMENT",
+                                        },
+                                        NOTE: {
+                                            bg: "bg-blue-50/50",
+                                            border: "border-blue-500",
+                                            text: "text-blue-950",
+                                            accent: "bg-blue-500",
+                                            label: "SYSTEM NOTE",
+                                        }
+                                    };
+                                    const config = themes[alertType];
+
+                                    return (
+                                        <div className={cn(
+                                            "my-14 border-l-4 transition-all duration-700 animate-in fade-in slide-in-from-left-4",
+                                            config.bg, config.border
+                                        )}>
+                                            <div className="p-10 lg:p-14">
+                                                <div className={cn(
+                                                    "flex items-center gap-4 mb-8 font-black uppercase tracking-[0.35em] text-[12px] opacity-70",
+                                                    config.text
+                                                )}>
+                                                    <span className={cn("inline-block w-4 h-1.5 rounded-full", config.accent)} />
+                                                    {config.label}
+                                                </div>
+                                                <div className={cn("text-xl lg:text-2xl leading-relaxed font-bold tracking-tight", config.text)}>
+                                                    {stripped}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <blockquote className="border-l-4 border-navy-950 bg-navy-50 p-10 lg:p-14 my-12 text-navy-900 font-medium leading-relaxed">
+                                        {children}
+                                    </blockquote>
+                                );
+                            },
                         }}
                     >
                         {markdown}
                     </ReactMarkdown>
+                </div>
+
+                {/* View Solution Section */}
+                <div className="mt-16 border-t-2 border-navy-100 pt-10">
+                    <button
+                        onClick={handleViewSolution}
+                        disabled={isFetchingSolution}
+                        className={cn(
+                            "w-full lg:w-auto px-8 py-4 bg-navy-950 text-white font-black uppercase tracking-widest text-xs hover:bg-navy-800 transition-colors flex items-center justify-center gap-3",
+                            isFetchingSolution && "opacity-70 cursor-not-allowed"
+                        )}
+                    >
+                        {isFetchingSolution ? "LOADING SOLUTION..." : showSolution ? "HIDE SOLUTION" : "VIEW SOLUTION"}
+                        {!isFetchingSolution && (
+                            <span className="text-[10px]">{showSolution ? "▲" : "▼"}</span>
+                        )}
+                    </button>
+
+                    {showSolution && solution && (
+                        <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                            <div className="bg-navy-50 border-l-4 border-navy-950 p-6 lg:p-8">
+                                <h3 className="text-navy-950 font-black uppercase tracking-widest text-xs mb-6 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-navy-950 rounded-full animate-pulse" />
+                                    OFFICIAL IMPLEMENTATION
+                                </h3>
+                                <pre className="bg-white border border-navy-100 p-6 overflow-x-auto font-mono text-xs lg:text-sm leading-relaxed text-navy-900">
+                                    <code>{solution}</code>
+                                </pre>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </article>
 

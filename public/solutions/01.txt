@@ -1,0 +1,14 @@
+patients = []
+
+def add_patient(name, age, gender):
+    patients.append({
+        "name": name,
+        "age": age,
+        "gender": gender
+    })
+    print("Patient Added: " + name + " (" + str(age) + ", " + gender + ")")
+
+add_patient("Ali", 17, "M")
+add_patient("Sara", 28, "F")
+
+print(patients)
