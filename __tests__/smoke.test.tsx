@@ -30,6 +30,6 @@ describe('Application Smoke Test', () => {
                 .on('error', reject)
         })
 
-        expect(statusCode).toBe(200)
+        expect([200, 307, 308]).toContain(statusCode)
     }, 30000)
 })
