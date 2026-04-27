@@ -18,7 +18,7 @@ const items = [
 
 export function Sidebar({ pathname, user }: SidebarProps) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col justify-between border-r border-slate-800 bg-[#001b33] p-6">
+    <aside className="fixed inset-y-0 left-0 flex w-72 flex-col justify-between overflow-y-auto border-r border-slate-800 bg-[#001b33] p-6">
       <div>
         <div className="border border-slate-700 bg-[#001529] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">

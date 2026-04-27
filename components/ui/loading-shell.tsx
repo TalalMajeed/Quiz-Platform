@@ -2,18 +2,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function StudentShellSkeleton() {
   return (
-    <div className="flex min-h-screen bg-white text-slate-950">
-      <aside className="flex w-72 shrink-0 flex-col justify-between border-r border-slate-800 bg-[#001b33] p-6">
-        <div>
-          <Skeleton className="h-36 w-full border border-slate-700 bg-slate-700/70" />
-          <div className="mt-8 space-y-3">
-            <Skeleton className="h-14 w-full border border-slate-700 bg-slate-700/70" />
-            <Skeleton className="h-14 w-full border border-slate-700 bg-slate-700/70" />
-          </div>
-        </div>
-        <Skeleton className="h-12 w-full border border-slate-700 bg-slate-700/70" />
-      </aside>
-      <main className="flex-1 px-10 py-10">
+    <div className="min-h-screen bg-white text-slate-950">
+      <aside className="fixed inset-y-0 left-0 w-72 border-r border-slate-800 bg-[#001b33]" />
+      <main className="ml-72 h-screen overflow-y-auto px-10 py-10">
         <div className="mx-auto max-w-6xl space-y-6">
           <Skeleton className="h-40 w-full border border-slate-200" />
           <div className="grid gap-6 xl:grid-cols-2">
@@ -28,21 +19,9 @@ export function StudentShellSkeleton() {
 
 export function AdminShellSkeleton() {
   return (
-    <div className="flex min-h-screen bg-white text-slate-950">
-      <aside className="flex w-72 shrink-0 flex-col justify-between border-r border-slate-800 bg-[#001b33] p-8">
-        <div>
-          <Skeleton className="h-6 w-28 bg-slate-700/70" />
-          <Skeleton className="mt-4 h-10 w-40 bg-slate-700/70" />
-          <Skeleton className="mt-3 h-4 w-48 bg-slate-700/70" />
-          <div className="mt-10 space-y-2">
-            <Skeleton className="h-12 w-full border border-slate-700 bg-slate-700/70" />
-            <Skeleton className="h-12 w-full border border-slate-700 bg-slate-700/70" />
-            <Skeleton className="h-12 w-full border border-slate-700 bg-slate-700/70" />
-          </div>
-        </div>
-        <Skeleton className="h-12 w-full border border-slate-700 bg-slate-700/70" />
-      </aside>
-      <main className="flex-1 p-10">
+    <div className="min-h-screen bg-white text-slate-950">
+      <aside className="fixed inset-y-0 left-0 w-72 border-r border-slate-800 bg-[#001b33]" />
+      <main className="ml-72 h-screen overflow-y-auto p-10">
         <Skeleton className="h-44 w-full border border-slate-200" />
         <Skeleton className="mt-8 h-[32rem] w-full border border-slate-200" />
       </main>

@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { cn } from "@/lib/utils";
 import { PendingLink } from "@/components/ui/pending-link";
@@ -7,9 +10,6 @@ type AdminShellProps = {
     name: string;
     email: string;
   };
-  pathname: string;
-  title: string;
-  description: string;
   children: React.ReactNode;
 };
 
@@ -21,14 +21,13 @@ const items = [
 
 export function AdminShell({
   admin,
-  pathname,
-  title,
-  description,
   children,
 }: AdminShellProps) {
+  const pathname = usePathname();
+
   return (
-    <div className="flex min-h-screen bg-white text-slate-950">
-      <aside className="flex w-72 shrink-0 flex-col justify-between border-r border-slate-800 bg-[#001b33] p-8">
+    <div className="min-h-screen bg-white text-slate-950">
+      <aside className="fixed inset-y-0 left-0 flex w-72 flex-col justify-between overflow-y-auto border-r border-slate-800 bg-[#001b33] p-8">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">
             Admin Panel
@@ -62,15 +61,8 @@ export function AdminShell({
         <LogoutButton />
       </aside>
 
-      <main className="flex-1 bg-white p-10">
-        <header className="border border-slate-200 bg-white p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-            {title}
-          </p>
-          <h2 className="mt-4 text-4xl font-semibold text-slate-950">{title}</h2>
-          <p className="mt-3 text-sm text-slate-600">{description}</p>
-        </header>
-        <div className="mt-8">{children}</div>
+      <main className="ml-72 h-screen overflow-y-auto bg-white p-10">
+        {children}
       </main>
     </div>
   );
