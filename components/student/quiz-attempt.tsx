@@ -71,6 +71,47 @@ type AnswerState = Record<
 const fieldClass =
   "w-full border border-slate-300 bg-white px-4 py-4 text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950";
 
+function getSkulptErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error.trim();
+  }
+
+  if (error && typeof error === "object") {
+    const candidate = error as {
+      toString?: () => string;
+      tp$str?: () => { v?: string; toString?: () => string };
+      args?: { v?: unknown[] };
+      traceback?: Array<{ lineno?: number; colno?: number }>;
+    };
+
+    const tpString = candidate.tp$str?.();
+    if (typeof tpString?.v === "string" && tpString.v.trim()) {
+      return tpString.v.trim();
+    }
+
+    const argsValue = candidate.args?.v?.[0];
+    if (typeof argsValue === "string" && argsValue.trim()) {
+      return argsValue.trim();
+    }
+
+    const rendered = candidate.toString?.();
+    if (typeof rendered === "string" && rendered.trim() && rendered !== "[object Object]") {
+      return rendered.trim();
+    }
+
+    const location = candidate.traceback?.[0];
+    if (location?.lineno) {
+      return `Python error near line ${location.lineno}${location.colno ? `, column ${location.colno}` : ""}.`;
+    }
+  }
+
+  return "Execution failed.";
+}
+
 export function QuizAttempt({
   quiz,
   attemptsUsed,
@@ -272,7 +313,7 @@ export function QuizAttempt({
     } catch (error) {
       setPythonOutput((current) => ({
         ...current,
-        [questionId]: error instanceof Error ? error.message : "Execution failed.",
+        [questionId]: getSkulptErrorMessage(error),
       }));
     } finally {
       setRunningQuestionId("");

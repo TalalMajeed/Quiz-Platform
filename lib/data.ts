@@ -150,6 +150,7 @@ export async function getAdminDashboardData() {
             ? submission.submittedAt.toISOString()
             : "",
         quizTitle: quiz?.title || "Unknown Quiz",
+        studentId: student?._id.toString() || "",
         studentName: student?.name || "Unknown Student",
         studentEmail: student?.email || "",
         studentUsername: student?.username || "",

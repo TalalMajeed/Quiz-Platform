@@ -13,6 +13,7 @@ type SubmissionRecord = {
   feedback: string;
   submittedAt: string;
   quizTitle: string;
+  studentId: string;
   studentName: string;
   studentEmail: string;
   studentUsername: string;
@@ -42,6 +43,9 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
   const initialSubmission = submissions[0];
   const [items, setItems] = useState(submissions);
   const [message, setMessage] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState(
+    initialSubmission?.studentId || ""
+  );
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(
     initialSubmission?.id || ""
   );
@@ -64,12 +68,41 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const studentOptions = items.reduce<
+    Array<{
+      studentId: string;
+      studentName: string;
+      studentEmail: string;
+      studentUsername: string;
+    }>
+  >((accumulator, submission) => {
+    if (
+      accumulator.some((student) => student.studentId === submission.studentId)
+    ) {
+      return accumulator;
+    }
+
+    accumulator.push({
+      studentId: submission.studentId,
+      studentName: submission.studentName,
+      studentEmail: submission.studentEmail,
+      studentUsername: submission.studentUsername,
+    });
+
+    return accumulator;
+  }, []);
+
+  const submissionsForStudent = items.filter(
+    (submission) => submission.studentId === selectedStudentId
+  );
+
   const selectedSubmission = items.find(
     (submission) => submission.id === selectedSubmissionId
   );
 
   function syncSelectedSubmission(submissionId: string, list = items) {
     const current = list.find((submission) => submission.id === submissionId);
+    setSelectedStudentId(current?.studentId || "");
     setSelectedSubmissionId(current?.id || "");
     setGradingFeedback(current?.feedback || "");
     setGradingAnswers(
@@ -83,6 +116,14 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
         ])
       )
     );
+  }
+
+  function syncSelectedStudent(studentId: string, list = items) {
+    setSelectedStudentId(studentId);
+    const nextSubmission = list.find(
+      (submission) => submission.studentId === studentId
+    );
+    syncSelectedSubmission(nextSubmission?.id || "", list);
   }
 
   async function handleGradeSubmission(event: FormEvent<HTMLFormElement>) {
@@ -193,7 +234,19 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
       (submission) => submission.id !== selectedSubmission.id
     );
     setItems(nextItems);
-    syncSelectedSubmission(nextItems[0]?.id || "", nextItems);
+    if (selectedSubmission.studentId) {
+      const nextStudentSubmission = nextItems.find(
+        (submission) => submission.studentId === selectedSubmission.studentId
+      );
+
+      if (nextStudentSubmission) {
+        syncSelectedSubmission(nextStudentSubmission.id, nextItems);
+      } else {
+        syncSelectedSubmission(nextItems[0]?.id || "", nextItems);
+      }
+    } else {
+      syncSelectedSubmission(nextItems[0]?.id || "", nextItems);
+    }
     setMessage("Submission deleted.");
     startTransition(() => {
       router.refresh();
@@ -204,17 +257,37 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
     <form onSubmit={handleGradeSubmission} className="border border-slate-200 bg-white p-8">
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-2xl font-semibold text-slate-950">Grade Submissions</h3>
-        <select
-          value={selectedSubmissionId}
-          onChange={(event) => syncSelectedSubmission(event.target.value)}
-          className="border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none"
-        >
-          {items.map((submission) => (
-            <option key={submission.id} value={submission.id}>
-              {submission.studentName} • {submission.quizTitle}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedStudentId}
+            onChange={(event) => syncSelectedStudent(event.target.value)}
+            className="border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none"
+          >
+            {studentOptions.map((student) => (
+              <option key={student.studentId} value={student.studentId}>
+                {student.studentName} •{" "}
+                {student.studentEmail || student.studentUsername}
+              </option>
+            ))}
+          </select>
+
+          {selectedStudentId && submissionsForStudent.length > 0 && (
+            <select
+              value={selectedSubmissionId}
+              onChange={(event) => syncSelectedSubmission(event.target.value)}
+              className="border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none"
+            >
+              {submissionsForStudent.map((submission) => (
+                <option key={submission.id} value={submission.id}>
+                  {submission.quizTitle}
+                  {submission.submittedAt
+                    ? ` • ${new Date(submission.submittedAt).toLocaleDateString()}`
+                    : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {selectedSubmission ? (
