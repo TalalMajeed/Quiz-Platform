@@ -1,13 +1,22 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/auth-form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getPostLoginRedirect, normalizeRedirectPath } from "@/lib/auth";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirectTo?: string }>;
+}) {
+  const { redirectTo } = await searchParams;
   const user = await getCurrentUser();
 
   if (user) {
-    redirect(user.role === "admin" ? "/admin" : "/quizzes");
+    redirect(getPostLoginRedirect(user.role, redirectTo));
   }
 
-  return <AuthForm />;
+  return (
+    <AuthForm
+      redirectTo={normalizeRedirectPath(redirectTo, "/quizzes")}
+    />
+  );
 }

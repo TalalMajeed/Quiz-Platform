@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, startTransition, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PendingLink } from "@/components/ui/pending-link";
 
 type AuthFormProps = {
   adminOnly?: boolean;
+  redirectTo?: string;
 };
 
-export function AuthForm({ adminOnly = false }: AuthFormProps) {
+export function AuthForm({ adminOnly = false, redirectTo = "" }: AuthFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +25,7 @@ export function AuthForm({ adminOnly = false }: AuthFormProps) {
       identifier: formData.get("identifier"),
       password: formData.get("password"),
       adminOnly,
+      redirectTo,
     };
 
     const response = await fetch("/api/login", {
@@ -41,8 +44,10 @@ export function AuthForm({ adminOnly = false }: AuthFormProps) {
       return;
     }
 
-    router.push(data.redirectTo || "/quizzes");
-    router.refresh();
+    startTransition(() => {
+      router.push(data.redirectTo || "/quizzes");
+      router.refresh();
+    });
   }
 
   return (
@@ -85,22 +90,23 @@ export function AuthForm({ adminOnly = false }: AuthFormProps) {
               </p>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              isLoading={isLoading}
+              loadingLabel="Signing in..."
+              className="w-full rounded-2xl"
             >
-              {isLoading ? "Signing in..." : "Login"}
-            </button>
+              Login
+            </Button>
           </form>
 
           <p className="mt-6 text-sm text-slate-600">
             {adminOnly ? (
               <>
                 Student login:{" "}
-                <Link href="/login" className="font-semibold text-slate-950">
+                <PendingLink href="/login" className="font-semibold text-slate-950">
                   Open student login
-                </Link>
+                </PendingLink>
               </>
             ) : (
               <>Student accounts are created by the admin.</>

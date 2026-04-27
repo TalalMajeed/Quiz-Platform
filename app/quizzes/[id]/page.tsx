@@ -9,8 +9,8 @@ export default async function QuizAttemptPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireStudent();
   const { id } = await params;
+  const user = await requireStudent(`/quizzes/${id}`);
   const data = await getQuizAttemptData(id, user.id);
 
   if (!data) {

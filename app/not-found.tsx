@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PendingLink } from "@/components/ui/pending-link";
 
 export default function NotFoundPage() {
   return (
@@ -14,18 +14,23 @@ export default function NotFoundPage() {
           The page you requested does not exist or may have been moved.
         </p>
         <div className="mt-8 flex gap-3">
-          <Link
+          <PendingLink
             href="/login"
-            className="border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            pendingLabel="Opening..."
+            showLoader
+            buttonStyle
           >
             Go to login
-          </Link>
-          <Link
+          </PendingLink>
+          <PendingLink
             href="/"
-            className="border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+            pendingLabel="Opening..."
+            showLoader
+            buttonStyle
+            variant="secondary"
           >
             Home
-          </Link>
+          </PendingLink>
         </div>
       </div>
     </div>

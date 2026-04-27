@@ -1,7 +1,7 @@
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/student/app-shell";
+import { PendingLink } from "@/components/ui/pending-link";
 import { requireStudent } from "@/lib/auth";
 import { getStudentReviewData } from "@/lib/data";
 
@@ -25,8 +25,8 @@ export default async function QuizReviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireStudent();
   const { id } = await params;
+  const user = await requireStudent(`/quizzes/${id}/review`);
   const data = await getStudentReviewData(id, user.id);
 
   if (!data) {
@@ -41,12 +41,15 @@ export default async function QuizReviewPage({
           <p className="mt-4 text-sm leading-7 text-slate-600">
             This quiz has not been graded yet, so there is no review to show.
           </p>
-          <Link
+          <PendingLink
             href="/quizzes"
-            className="mt-6 inline-flex border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            pendingLabel="Going back..."
+            showLoader
+            buttonStyle
+            className="mt-6"
           >
             Back to quizzes
-          </Link>
+          </PendingLink>
         </div>
       </AppShell>
     );

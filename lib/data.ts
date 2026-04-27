@@ -73,7 +73,9 @@ export async function getAdminDashboardData() {
   const [quizzes, students, submissions] = await Promise.all([
     Quiz.find().sort({ createdAt: -1 }).lean(),
     User.find({ role: "student" }).sort({ createdAt: -1 }).lean(),
-    Submission.find()
+    Submission.find({
+      status: { $in: ["submitted", "graded", "expired"] },
+    })
       .populate("quizId", "title questions")
       .populate("userId", "name email username")
       .sort({ updatedAt: -1 })
@@ -89,6 +91,25 @@ export async function getAdminDashboardData() {
       attemptsAllowed: quiz.attemptsAllowed,
       published: quiz.published,
       questionCount: quiz.questions.length,
+      questions: (
+        quiz.questions as Array<{
+          _id: Types.ObjectId;
+          prompt: string;
+          type: "short" | "code";
+          points: number;
+          answer?: string;
+          starterCode?: string;
+          rubric?: string;
+        }>
+      ).map((question) => ({
+        id: question._id.toString(),
+        prompt: question.prompt,
+        type: question.type,
+        points: question.points,
+        answer: question.answer || "",
+        starterCode: question.starterCode || "",
+        rubric: question.rubric || "",
+      })),
       createdAt:
         quiz.createdAt instanceof Date ? quiz.createdAt.toISOString() : "",
     })),
@@ -96,6 +117,7 @@ export async function getAdminDashboardData() {
       id: student._id.toString(),
       name: student.name,
       email: student.email || "",
+      username: student.username || "",
       createdAt:
         student.createdAt instanceof Date ? student.createdAt.toISOString() : "",
     })),
@@ -123,6 +145,10 @@ export async function getAdminDashboardData() {
         score: submission.score,
         maxScore: submission.maxScore,
         feedback: submission.feedback,
+        submittedAt:
+          submission.submittedAt instanceof Date
+            ? submission.submittedAt.toISOString()
+            : "",
         quizTitle: quiz?.title || "Unknown Quiz",
         studentName: student?.name || "Unknown Student",
         studentEmail: student?.email || "",

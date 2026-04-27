@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { AppShell } from "@/components/student/app-shell";
+import { PendingLink } from "@/components/ui/pending-link";
 import { requireStudent } from "@/lib/auth";
 import { getStudentDashboard } from "@/lib/data";
 
 export default async function QuizzesPage() {
-  const user = await requireStudent();
+  const user = await requireStudent("/quizzes");
   const quizzes = await getStudentDashboard(user.id);
 
   return (
@@ -45,21 +45,28 @@ export default async function QuizzesPage() {
                 </div>
               )}
 
-              <Link
+              <PendingLink
                 href={`/quizzes/${quiz.id}`}
-                className="mt-6 inline-flex border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+                pendingLabel="Opening..."
+                showLoader
+                buttonStyle
+                className="mt-6"
               >
                 {quiz.submission?.status === "in_progress"
                   ? "Continue Quiz"
                   : "Open Quiz"}
-              </Link>
+              </PendingLink>
               {quiz.submission?.status === "graded" && (
-                <Link
+                <PendingLink
                   href={`/quizzes/${quiz.id}/review`}
-                  className="mt-6 ml-3 inline-flex border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+                  pendingLabel="Opening..."
+                  showLoader
+                  buttonStyle
+                  variant="secondary"
+                  className="mt-6 ml-3"
                 >
                   See Review
-                </Link>
+                </PendingLink>
               )}
             </div>
           ))}

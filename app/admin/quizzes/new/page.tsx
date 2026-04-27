@@ -1,20 +1,10 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { CreateQuizForm } from "@/components/admin/create-quiz-form";
-import { ensureDefaultAdmin, getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { getAdminDashboardData } from "@/lib/data";
-import { redirect } from "next/navigation";
 
 export default async function AdminQuizNewPage() {
-  await ensureDefaultAdmin();
-  const admin = await getCurrentUser();
-
-  if (!admin) {
-    redirect("/admin/login");
-  }
-
-  if (admin.role !== "admin") {
-    redirect("/quizzes");
-  }
+  const admin = await requireAdmin("/admin/quizzes/new");
 
   const data = await getAdminDashboardData();
 

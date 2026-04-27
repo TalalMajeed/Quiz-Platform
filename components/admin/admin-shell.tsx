@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { cn } from "@/lib/utils";
+import { PendingLink } from "@/components/ui/pending-link";
 
 type AdminShellProps = {
   admin: {
@@ -42,7 +42,7 @@ export function AdminShell({
             {items.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
-                <Link
+                <PendingLink
                   key={item.href}
                   href={item.href}
                   className={cn(
@@ -53,7 +53,7 @@ export function AdminShell({
                   )}
                 >
                   {item.label}
-                </Link>
+                </PendingLink>
               );
             })}
           </nav>

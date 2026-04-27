@@ -6,7 +6,7 @@ export default async function AdminPage() {
   const admin = await getCurrentUser();
 
   if (!admin) {
-    redirect("/admin/login");
+    redirect("/admin/login?redirectTo=%2Fadmin");
   }
 
   if (admin.role !== "admin") {

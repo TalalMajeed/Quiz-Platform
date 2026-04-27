@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import { DesktopOnlyGate } from "@/components/desktop-only";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://quiz-platform.local"),
   title: {

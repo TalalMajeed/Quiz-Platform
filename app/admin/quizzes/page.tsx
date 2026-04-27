@@ -1,20 +1,10 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { CreateQuizForm } from "@/components/admin/create-quiz-form";
-import { ensureDefaultAdmin, getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { getAdminDashboardData } from "@/lib/data";
-import { redirect } from "next/navigation";
 
 export default async function AdminQuizzesPage() {
-  await ensureDefaultAdmin();
-  const admin = await getCurrentUser();
-
-  if (!admin) {
-    redirect("/admin/login");
-  }
-
-  if (admin.role !== "admin") {
-    redirect("/quizzes");
-  }
+  const admin = await requireAdmin("/admin/quizzes");
 
   const data = await getAdminDashboardData();
 
@@ -23,7 +13,7 @@ export default async function AdminQuizzesPage() {
       admin={admin}
       pathname="/admin/quizzes"
       title="Quizzes"
-      description="Create timed quizzes on a dedicated page instead of squeezing everything into one dashboard."
+      description="Manage quiz creation, publishing, updates, and cleanup without leaving the admin workspace."
     >
       <CreateQuizForm mode="landing" quizzes={data.quizzes} />
     </AdminShell>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -15,18 +16,22 @@ export function LogoutButton() {
     });
 
     const data = await response.json();
-    router.push(data.redirectTo || "/login");
-    router.refresh();
+    startTransition(() => {
+      router.push(data.redirectTo || "/login");
+      router.refresh();
+    });
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="secondary"
       onClick={handleLogout}
-      className="rounded-2xl border border-white/15 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-amber-300/50 hover:text-white"
-      disabled={isLoading}
+      isLoading={isLoading}
+      loadingLabel="Signing out..."
+      className="w-full rounded-2xl border-slate-700 bg-[#001529] text-slate-300 hover:border-slate-500 hover:bg-[#001d38] hover:text-white"
     >
-      {isLoading ? "Signing out..." : "Logout"}
-    </button>
+      Logout
+    </Button>
   );
 }

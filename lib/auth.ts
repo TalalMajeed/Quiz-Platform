@@ -154,25 +154,64 @@ export async function ensureDefaultAdmin() {
   return admin;
 }
 
-export async function requireUser() {
+export function normalizeRedirectPath(
+  candidate: string | null | undefined,
+  fallback: string
+) {
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
+    return fallback;
+  }
+
+  return candidate;
+}
+
+function getLoginRedirectPath(redirectToPath?: string, adminOnly = false) {
+  const loginPath = adminOnly ? "/admin/login" : "/login";
+
+  if (!redirectToPath) {
+    return loginPath;
+  }
+
+  return `${loginPath}?redirectTo=${encodeURIComponent(redirectToPath)}`;
+}
+
+export function getPostLoginRedirect(
+  role: "admin" | "student",
+  redirectToPath?: string | null
+) {
+  const fallback = role === "admin" ? "/admin" : "/quizzes";
+  const normalized = normalizeRedirectPath(redirectToPath, fallback);
+
+  if (role === "student" && normalized.startsWith("/admin")) {
+    return fallback;
+  }
+
+  if (role === "admin" && !normalized.startsWith("/admin")) {
+    return fallback;
+  }
+
+  return normalized;
+}
+
+export async function requireUser(redirectToPath?: string, adminOnly = false) {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect(getLoginRedirectPath(redirectToPath, adminOnly));
   }
   return user;
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(redirectToPath?: string) {
   await ensureDefaultAdmin();
-  const user = await requireUser();
+  const user = await requireUser(redirectToPath, true);
   if (user.role !== "admin") {
     redirect("/quizzes");
   }
   return user;
 }
 
-export async function requireStudent() {
-  const user = await requireUser();
+export async function requireStudent(redirectToPath?: string) {
+  const user = await requireUser(redirectToPath);
   if (user.role !== "student") {
     redirect("/admin");
   }

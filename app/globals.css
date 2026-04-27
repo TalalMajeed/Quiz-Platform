@@ -38,6 +38,18 @@
     font: inherit;
   }
 
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  a {
+    cursor: pointer;
+  }
+
   input,
   textarea,
   select {

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/ui/logout-button";
+import { PendingLink } from "@/components/ui/pending-link";
 
 type SidebarProps = {
   pathname: string;
@@ -34,7 +34,7 @@ export function Sidebar({ pathname, user }: SidebarProps) {
           {items.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
-              <Link
+              <PendingLink
                 key={item.href}
                 href={item.href}
                 className={cn(
@@ -45,7 +45,7 @@ export function Sidebar({ pathname, user }: SidebarProps) {
                 )}
               >
                 {item.label}
-              </Link>
+              </PendingLink>
             );
           })}
         </nav>

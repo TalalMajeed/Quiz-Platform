@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongoose";
 import { Submission } from "@/lib/models/submission";
 
 export default async function ProfilePage() {
-  const user = await requireStudent();
+  const user = await requireStudent("/profile");
   await connectToDatabase();
 
   const submissions = await Submission.find({ userId: user.id }).lean();

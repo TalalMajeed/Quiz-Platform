@@ -1,50 +1,58 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, startTransition, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
+type SubmissionRecord = {
+  id: string;
+  status: string;
+  score: number;
+  maxScore: number;
+  feedback: string;
+  submittedAt: string;
+  quizTitle: string;
+  studentName: string;
+  studentEmail: string;
+  studentUsername: string;
+  answers: Array<{
+    questionId: string;
+    prompt: string;
+    points: number;
+    type: "short" | "code";
+    responseText: string;
+    selectedOption: string;
+    code: string;
+    awardedPoints: number;
+    autoAwardedPoints: number;
+    feedback: string;
+  }>;
+};
 
 type SubmissionGraderProps = {
-  submissions: Array<{
-    id: string;
-    status: string;
-    score: number;
-    maxScore: number;
-    feedback: string;
-    quizTitle: string;
-    studentName: string;
-    studentEmail: string;
-    studentUsername: string;
-    answers: Array<{
-      questionId: string;
-      prompt: string;
-      points: number;
-      type: "short" | "code";
-      responseText: string;
-      selectedOption: string;
-      code: string;
-      awardedPoints: number;
-      autoAwardedPoints: number;
-      feedback: string;
-    }>;
-  }>;
+  submissions: SubmissionRecord[];
 };
 
 const fieldClass =
   "w-full border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950";
 
 export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
+  const router = useRouter();
+  const initialSubmission = submissions[0];
+  const [items, setItems] = useState(submissions);
   const [message, setMessage] = useState("");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(
-    submissions[0]?.id || ""
+    initialSubmission?.id || ""
   );
   const [gradingFeedback, setGradingFeedback] = useState(
-    submissions[0]?.feedback || ""
+    initialSubmission?.feedback || ""
   );
   const [gradingAnswers, setGradingAnswers] = useState<
     Record<string, { awardedPoints: number; feedback: string }>
-  >(() =>
+  >(
     Object.fromEntries(
-      (submissions[0]?.answers || []).map((answer) => [
+      (initialSubmission?.answers || []).map((answer) => [
         answer.questionId,
         {
           awardedPoints: answer.awardedPoints,
@@ -53,18 +61,20 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
       ])
     )
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const selectedSubmission = submissions.find(
+  const selectedSubmission = items.find(
     (submission) => submission.id === selectedSubmissionId
   );
 
-  function syncSelectedSubmission(submissionId: string) {
-    setSelectedSubmissionId(submissionId);
-    const next = submissions.find((submission) => submission.id === submissionId);
-    setGradingFeedback(next?.feedback || "");
+  function syncSelectedSubmission(submissionId: string, list = items) {
+    const current = list.find((submission) => submission.id === submissionId);
+    setSelectedSubmissionId(current?.id || "");
+    setGradingFeedback(current?.feedback || "");
     setGradingAnswers(
       Object.fromEntries(
-        (next?.answers || []).map((answer) => [
+        (current?.answers || []).map((answer) => [
           answer.questionId,
           {
             awardedPoints: answer.awardedPoints,
@@ -81,6 +91,7 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
       return;
     }
 
+    setIsSaving(true);
     setMessage("Saving grades...");
 
     const response = await fetch(
@@ -102,7 +113,91 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
     );
 
     const payload = await response.json();
-    setMessage(payload.error || "Grades saved. Refresh to reload updated scores.");
+    setIsSaving(false);
+
+    if (!response.ok) {
+      setMessage(payload.error || "Unable to save grades.");
+      return;
+    }
+
+    const nextSubmission = payload.submission as {
+      id: string;
+      status: string;
+      score: number;
+      maxScore: number;
+      feedback: string;
+      answers: SubmissionRecord["answers"];
+    };
+
+    setItems((current) =>
+      current.map((submission) =>
+        submission.id === selectedSubmission.id
+          ? {
+              ...submission,
+              status: nextSubmission.status,
+              score: nextSubmission.score,
+              maxScore: nextSubmission.maxScore,
+              feedback: nextSubmission.feedback,
+              answers: nextSubmission.answers,
+            }
+          : submission
+      )
+    );
+    setGradingFeedback(nextSubmission.feedback || "");
+    setGradingAnswers(
+      Object.fromEntries(
+        nextSubmission.answers.map((answer) => [
+          answer.questionId,
+          {
+            awardedPoints: answer.awardedPoints,
+            feedback: answer.feedback,
+          },
+        ])
+      )
+    );
+
+    setMessage("Submission updated.");
+    startTransition(() => {
+      router.refresh();
+    });
+  }
+
+  async function handleDeleteSubmission() {
+    if (!selectedSubmission) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${selectedSubmission.studentName}'s submission for ${selectedSubmission.quizTitle}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setMessage("Deleting submission...");
+
+    const response = await fetch(`/api/admin/submissions/${selectedSubmission.id}`, {
+      method: "DELETE",
+    });
+    const payload = await response.json().catch(() => ({}));
+    setIsDeleting(false);
+
+    if (!response.ok) {
+      setMessage(payload.error || "Unable to delete submission.");
+      return;
+    }
+
+    const nextItems = items.filter(
+      (submission) => submission.id !== selectedSubmission.id
+    );
+    setItems(nextItems);
+    syncSelectedSubmission(nextItems[0]?.id || "", nextItems);
+    setMessage("Submission deleted.");
+    startTransition(() => {
+      router.refresh();
+    });
   }
 
   return (
@@ -114,7 +209,7 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
           onChange={(event) => syncSelectedSubmission(event.target.value)}
           className="border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none"
         >
-          {submissions.map((submission) => (
+          {items.map((submission) => (
             <option key={submission.id} value={submission.id}>
               {submission.studentName} • {submission.quizTitle}
             </option>
@@ -133,6 +228,11 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
               Status: {selectedSubmission.status} • Current score:{" "}
               {selectedSubmission.score}/{selectedSubmission.maxScore}
             </p>
+            {selectedSubmission.submittedAt && (
+              <p className="mt-1">
+                Submitted: {new Date(selectedSubmission.submittedAt).toLocaleString()}
+              </p>
+            )}
           </div>
 
           {selectedSubmission.answers.map((answer, index) => (
@@ -203,16 +303,32 @@ export function SubmissionGrader({ submissions }: SubmissionGraderProps) {
             placeholder="Overall feedback"
             className={`${fieldClass} min-h-28`}
           />
-          <button
-            type="submit"
-            className="border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
-          >
-            Save Grades
-          </button>
-          <p className="text-sm text-slate-700">{message}</p>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="submit"
+              isLoading={isSaving}
+              loadingLabel="Saving grades..."
+            >
+              Save Grades
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => void handleDeleteSubmission()}
+              isLoading={isDeleting}
+              loadingLabel="Deleting..."
+            >
+              Delete Submission
+            </Button>
+          </div>
+
+          {message && <p className="text-sm text-slate-700">{message}</p>}
         </div>
       ) : (
-        <p className="mt-6 text-sm text-slate-500">No submissions yet to grade.</p>
+        <p className="mt-6 text-sm text-slate-500">
+          No completed submissions are ready for grading yet.
+        </p>
       )}
     </form>
   );

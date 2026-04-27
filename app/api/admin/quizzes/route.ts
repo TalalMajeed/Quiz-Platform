@@ -43,41 +43,49 @@ export async function POST(request: NextRequest) {
     return badRequest("Add at least one question.");
   }
 
-  const normalizedQuestions = questions.map((question, index) => {
-    const prompt = String(question.prompt || "").trim();
-    const type = String(question.type || "").trim();
-    const points = Number(question.points || 0);
-    if (!prompt) {
-      throw new Error(`Question ${index + 1} needs a prompt.`);
-    }
+  let quiz;
 
-    if (!["short", "code"].includes(type)) {
-      throw new Error(`Question ${index + 1} has an invalid type.`);
-    }
+  try {
+    const normalizedQuestions = questions.map((question, index) => {
+      const prompt = String(question.prompt || "").trim();
+      const type = String(question.type || "").trim();
+      const points = Number(question.points || 0);
+      if (!prompt) {
+        throw new Error(`Question ${index + 1} needs a prompt.`);
+      }
 
-    if (!Number.isFinite(points) || points < 1) {
-      throw new Error(`Question ${index + 1} needs at least 1 point.`);
-    }
+      if (!["short", "code"].includes(type)) {
+        throw new Error(`Question ${index + 1} has an invalid type.`);
+      }
 
-    return {
-      prompt,
-      type,
-      points,
-      options: undefined,
-      answer: String(question.answer || "").trim(),
-      starterCode: String(question.starterCode || ""),
-      rubric: String(question.rubric || "").trim(),
-    };
-  });
+      if (!Number.isFinite(points) || points < 1) {
+        throw new Error(`Question ${index + 1} needs at least 1 point.`);
+      }
 
-  const quiz = await Quiz.create({
-    title,
-    description,
-    durationMinutes,
-    attemptsAllowed,
-    published,
-    questions: normalizedQuestions,
-  });
+      return {
+        prompt,
+        type,
+        points,
+        options: undefined,
+        answer: String(question.answer || "").trim(),
+        starterCode: String(question.starterCode || ""),
+        rubric: String(question.rubric || "").trim(),
+      };
+    });
+
+    quiz = await Quiz.create({
+      title,
+      description,
+      durationMinutes,
+      attemptsAllowed,
+      published,
+      questions: normalizedQuestions,
+    });
+  } catch (error) {
+    return badRequest(
+      error instanceof Error ? error.message : "Unable to create quiz."
+    );
+  }
 
   return NextResponse.json({ ok: true, quiz: serializeQuiz(quiz.toObject()) });
 }

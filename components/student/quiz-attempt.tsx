@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PendingLink } from "@/components/ui/pending-link";
 
 declare global {
   interface Window {
@@ -98,6 +99,7 @@ export function QuizAttempt({
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [runningQuestionId, setRunningQuestionId] = useState("");
   const [pythonOutput, setPythonOutput] = useState<Record<string, string>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showCompletionScreen, setShowCompletionScreen] = useState(false);
@@ -237,12 +239,14 @@ export function QuizAttempt({
   async function runCode(questionId: string) {
     const source = answers[questionId]?.code || "";
     const sk = window.Sk;
+    setRunningQuestionId(questionId);
 
     if (!sk) {
       setPythonOutput((current) => ({
         ...current,
         [questionId]: "Skulpt is still loading. Try again in a moment.",
       }));
+      setRunningQuestionId("");
       return;
     }
 
@@ -270,6 +274,8 @@ export function QuizAttempt({
         ...current,
         [questionId]: error instanceof Error ? error.message : "Execution failed.",
       }));
+    } finally {
+      setRunningQuestionId("");
     }
   }
 
@@ -316,17 +322,18 @@ export function QuizAttempt({
         </div>
 
         <div className="mt-8 flex items-center gap-4">
-          <button
+          <Button
             type="button"
             onClick={() => void startQuiz()}
-            disabled={isStarting}
-            className="border border-slate-950 bg-slate-950 px-6 py-3 text-sm font-semibold text-white"
+            isLoading={isStarting}
+            loadingLabel="Starting..."
+            size="lg"
           >
-            {isStarting ? "Starting..." : "Start Quiz"}
-          </button>
-          <Link href="/quizzes" className="text-sm font-medium text-slate-700">
+            Start Quiz
+          </Button>
+          <PendingLink href="/quizzes" className="text-sm font-medium text-slate-700">
             Back to home
-          </Link>
+          </PendingLink>
         </div>
 
         {statusMessage && <p className="mt-4 text-sm text-slate-700">{statusMessage}</p>}
@@ -341,12 +348,15 @@ export function QuizAttempt({
         <p className="mt-4 text-slate-600">
           You have already used all allowed attempts for this quiz.
         </p>
-        <Link
+        <PendingLink
           href="/quizzes"
-          className="mt-8 inline-flex border border-slate-950 bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+          pendingLabel="Going back..."
+          showLoader
+          buttonStyle
+          className="mt-8"
         >
           Back to home
-        </Link>
+        </PendingLink>
       </div>
     );
   }
@@ -364,12 +374,15 @@ export function QuizAttempt({
           Your attempt has been submitted. Results will appear only after the admin grades
           the quiz.
         </p>
-        <Link
+        <PendingLink
           href="/quizzes"
-          className="mt-8 inline-flex border border-slate-950 bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+          pendingLabel="Going back..."
+          showLoader
+          buttonStyle
+          className="mt-8"
         >
           Back to home
-        </Link>
+        </PendingLink>
       </div>
     );
   }
@@ -436,13 +449,16 @@ export function QuizAttempt({
               className={`${fieldClass} min-h-80 font-mono text-sm`}
               spellCheck={false}
             />
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => void runCode(activeQuestion.id)}
-              className="w-fit border border-slate-950 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+              isLoading={runningQuestionId === activeQuestion.id}
+              loadingLabel="Running..."
+              className="w-fit"
             >
               Run Code
-            </button>
+            </Button>
             <pre className="min-h-28 border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-950">
               {pythonOutput[activeQuestion.id] || "Output will appear here."}
             </pre>
@@ -451,37 +467,36 @@ export function QuizAttempt({
       </section>
 
       <div className="flex items-center justify-between border border-slate-200 bg-white p-6">
-        <button
+        <Button
           type="button"
           onClick={() => setCurrentIndex((current) => Math.max(0, current - 1))}
           disabled={currentIndex === 0}
-          className="border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
+          variant="secondary"
         >
           Back
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3">
           {currentIndex < quiz.questions.length - 1 ? (
-            <button
+            <Button
               type="button"
               onClick={() =>
                 setCurrentIndex((current) =>
                   Math.min(quiz.questions.length - 1, current + 1)
                 )
               }
-              className="border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
             >
               Next
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={() => void handleSubmit()}
-              disabled={isSubmitting}
-              className="border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+              isLoading={isSubmitting}
+              loadingLabel="Submitting..."
             >
-              {isSubmitting ? "Submitting..." : "Finish Quiz"}
-            </button>
+              Finish Quiz
+            </Button>
           )}
         </div>
       </div>

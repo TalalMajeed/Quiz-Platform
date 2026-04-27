@@ -1,20 +1,10 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { StudentManagement } from "@/components/admin/student-management";
-import { ensureDefaultAdmin, getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { getAdminDashboardData } from "@/lib/data";
-import { redirect } from "next/navigation";
 
 export default async function AdminStudentsPage() {
-  await ensureDefaultAdmin();
-  const admin = await getCurrentUser();
-
-  if (!admin) {
-    redirect("/admin/login");
-  }
-
-  if (admin.role !== "admin") {
-    redirect("/quizzes");
-  }
+  const admin = await requireAdmin("/admin/students");
 
   const data = await getAdminDashboardData();
 
@@ -23,7 +13,7 @@ export default async function AdminStudentsPage() {
       admin={admin}
       pathname="/admin/students"
       title="Students"
-      description="Create student accounts with email and password only, then review the full student list here."
+      description="Create, update, and remove student accounts while keeping the roster and submission history in sync."
     >
       <StudentManagement students={data.students} />
     </AdminShell>
