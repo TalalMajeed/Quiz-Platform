@@ -291,6 +291,7 @@ export function CreateQuizForm({ mode, quizzes = [] }: CreateQuizFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingQuizId, setDeletingQuizId] = useState("");
+  const [copiedQuizId, setCopiedQuizId] = useState("");
 
   const editingQuiz = useMemo(
     () => items.find((quiz) => quiz.id === editingQuizId) || null,
@@ -372,6 +373,21 @@ export function CreateQuizForm({ mode, quizzes = [] }: CreateQuizFormProps) {
     setPreviewIndex(null);
     setMessage("");
     setIsModalOpen(true);
+  }
+
+  async function handleCopyQuizLink(quiz: QuizItem) {
+    const url = `${window.location.origin}/quizzes/${quiz.id}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedQuizId(quiz.id);
+      setMessage(`Copied link for ${quiz.title}.`);
+      window.setTimeout(() => {
+        setCopiedQuizId((current) => (current === quiz.id ? "" : current));
+      }, 2000);
+    } catch {
+      setMessage("Unable to copy the link right now.");
+    }
   }
 
   async function handleDeleteQuiz(quiz: QuizItem) {
@@ -488,6 +504,13 @@ export function CreateQuizForm({ mode, quizzes = [] }: CreateQuizFormProps) {
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void handleCopyQuizLink(quiz)}
+                  >
+                    {copiedQuizId === quiz.id ? "Copied" : "Copy Link"}
+                  </Button>
                   <Button
                     type="button"
                     variant="secondary"
